@@ -8,10 +8,17 @@ University of Maryland, College Park
 """
 import glob
 import cv2
+import ReadCameraModel
 
+# Specify the path for all the video frames here
 IMAGES_PATH = "/home/nalindas9/Documents/Courses/Spring_2020_Semester_2/ENPM673_Perception_for_Autonomous_Robots/Github/enpm673/Oxford_dataset/stereo/centre"
+# Specify the path for the camera parameters
+MODELS_PATH = "/home/nalindas9/Documents/Courses/Spring_2020_Semester_2/ENPM673_Perception_for_Autonomous_Robots/Github/enpm673/Oxford_dataset/model"
 
+# Main Function
 def main():
+  fx, fy, cx, cy, G_camera_image, LUT = ReadCameraModel.ReadCameraModel(MODELS_PATH)
+  print('The extracted camera parameters are fx = {:}, fy = {:}, cx = {:}, cy = {:}, G_camera_image = {:}, LUT = {:}:'.format(fx, fy, cx, cy, G_camera_image, LUT))
   for frame in sorted(glob.glob(IMAGES_PATH + "/*")):
     print('Image:', frame.split("centre/", 1)[1])
     img = cv2.imread(frame,0)
