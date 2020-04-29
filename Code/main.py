@@ -18,7 +18,7 @@ path = "/home/aditya/PycharmProjects/VisualOdometry/Undistorted/*"
 #     processed.append(img)
 
 
-def getFeatureMatches(img1, img2):
+def GetFeatureMatches(img1, img2):
     """
     Uses keypoint algorithm to extract feature points from the image and get point correspondences
     :param: img1 (Left image), img2 (Right image)
@@ -46,7 +46,7 @@ def getFeatureMatches(img1, img2):
     return features
 
 
-def computeFundamentalMatrix(pts1, pts2):
+def ComputeFundamentalMatrix(pts1, pts2):
     """
     This function computes the fundamental matrix by computing the SVD of Ax = 0
     :param pts1: ndarray left feature points
@@ -74,7 +74,7 @@ def computeFundamentalMatrix(pts1, pts2):
     return F / F[2, 2]
 
 
-def getBestfitFundamentalMatrix(pts1, pts2):
+def GetBestfitFundamentalMatrix(pts1, pts2):
     """
     Leverages the 8-point algorithm and implement RANSAC algorithm to find the best F matrix
     :param pts1: ndarray of left features
@@ -91,7 +91,7 @@ def getBestfitFundamentalMatrix(pts1, pts2):
         idx = random.sample(range(8), 8)
         left_pts = pts1[idx]
         right_pts = pts2[idx]
-        F = computeFundamentalMatrix(left_pts, right_pts)
+        F = ComputeFundamentalMatrix(left_pts, right_pts)
         left_feature_inlier = []
         right_feature_inlier = []
         for j in range(0, len(idx)):
@@ -111,7 +111,7 @@ def getBestfitFundamentalMatrix(pts1, pts2):
     return finalFundamentalMatrix
 
 
-def getEssentialMatrix(K, F):
+def GetEssentialMatrix(K, F):
     """
     This function computes the essential matrix from the fundamental matrix. The E matrix is defined
     in normalized image coordinates
@@ -163,16 +163,16 @@ def ExtractCameraPose(E):
 
 img1 = cv2.imread("/home/aditya/PycharmProjects/VisualOdometry/Undistorted/undistorted_1399381446204705.png")
 img2 = cv2.imread("/home/aditya/PycharmProjects/VisualOdometry/Undistorted/undistorted_1399381446704623.png")
-features2d = getFeatureMatches(img1, img2)
+features2d = GetFeatureMatches(img1, img2)
 left_features = features2d[0]
 right_features = features2d[1]
 print('Match points:', left_features[:8])
-F = computeFundamentalMatrix(left_features[:8], right_features[:8])
+F = ComputeFundamentalMatrix(left_features[:8], right_features[:8])
 print(np.linalg.matrix_rank(F))
 idx = random.sample(range(8), 8)
 print(idx)
 print(left_features[idx], right_features[idx])
-F2 = computeFundamentalMatrix(left_features[idx], right_features[idx])
+F2 = ComputeFundamentalMatrix(left_features[idx], right_features[idx])
 print(F2)
 left = left_features[idx]
 right = right_features[idx]
@@ -181,7 +181,7 @@ nright = np.array([right[0,0], right[0,1], 1])
 print(nleft, nright)
 fit = np.dot(nright.T, np.dot(F, nleft))
 print(fit)
-Ff = getBestfitFundamentalMatrix(left_features, right_features)
+Ff = GetBestfitFundamentalMatrix(left_features, right_features)
 print(Ff)
 # img1 = cv2.drawKeypoints(img1, kp, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 # print(len(kp))
