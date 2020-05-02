@@ -13,6 +13,7 @@ import ReadCameraModel
 import UndistortImage
 from matplotlib import pyplot as plt
 from cv2 import xfeatures2d 
+import random
 
 # Specify the path for all the video frames here
 IMAGES_PATH = "/home/nalindas9/Documents/courses/spring_2020/enpm673-perception/datasets/Oxford_dataset/stereo/centre"
@@ -62,12 +63,48 @@ def fundamental_matrix(pts1, pts2):
   # Find A matrix
   for i in range(0,n):
     A[i] = [x1[i] * x2[i], x1[i] * y2[i], x1[i], y1[i] * x2[i], y1[i] * y2[i], y1[i], x2[i], y2[i], 1]
-  print('A is:', A)
   # Compute the F matrix by calculating the SVD
-  U, S, V = np.linalg.svd(A)
-  print('U: {:}, S: {:}, V: {:}'.format(U, S, V))
-  F = V[:, -1].reshape(3,3)
+  U, S, Vh = np.linalg.svd(A)
+  F = Vh[:, -1].reshape(3,3)
+  # Impose Rank 2 constraint on the fundamental matrix
+  U, S, Vh = np.linalg.svd(F)
+  S[2] = 0
+  F = np.dot(U, np.dot(np.diag(S),Vh))
+  F = F/F[2,2]
   print('F:', F)
+  return F
+
+# Function to implement RANSAC algorithm to reject outliers from SIFT
+def ransac(pts1, pts2):
+  iterations = 50
+  threshold = 0.01
+  max_count = 0
+  for i in range(0, iterations):
+    count = 0
+    idx = random.sample(range(pts1.shape[0]), 8)
+    left_pts = pts1[idx]
+    right_pts = pts2[idx]
+    F, mask = cv2.findFundamentalMat(left_pts,right_pts,cv2.FM_LMEDS)
+    left_feature_inliers = []
+    right_feature_inliers = []
+    for j in range(0, len(pts1)):
+      homogeneous_right = np.array([pts2[j, 0], pts2[j, 1], 1])
+      homogeneous_left = np.array([pts1[j, 0], pts1[j, 1], 1])
+      fit = np.dot(homogeneous_right.T, np.dot(F, homogeneous_left))  
+      if np.abs(fit) < threshold:
+        left_feature_inliers.append(pts1[j])
+        right_feature_inliers.append(pts2[j])
+        count += 1
+    inliers_left = np.array(left_feature_inliers)
+    inliers_right = np.array(right_feature_inliers)  
+    if count > max_count:
+      max_count = count
+      estimated_F = F  
+      final_inliers_left = inliers_left
+      final_inliers_right = inliers_right
+  return final_inliers_left, final_inliers_right, estimated_F
+  
+
   
 # Main Function
 def main():
@@ -87,7 +124,9 @@ def main():
     if itr != 0 and itr%2 == 0:
       # Get point matches 
       left_pts, right_pts = featurematch(successive_frames[0], successive_frames[1])
-      fundamental_matrix(left_pts[0:8], right_pts[0:8])
+      left_inliers, right_inliers, F = ransac(left_pts, right_pts)
+      
+      
       successive_frames = []        
     cv2.imshow('Color image', img)
     cv2.waitKey(0)
