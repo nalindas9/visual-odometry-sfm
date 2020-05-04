@@ -7,6 +7,7 @@ Graduate Student pursuing Masters in Robotics,
 University of Maryland, College Park
 """
 import numpy as np
+import os
 import glob
 import cv2
 import ReadCameraModel
@@ -47,7 +48,7 @@ def featurematch(frame1, frame2):
 
   img3 = cv2.drawMatchesKnn(frame1,kp1,frame2,kp2,matches,None,**draw_params)
 
-  plt.imshow(img3,),plt.show()
+  #plt.imshow(img3,),plt.show()
   left_pts = np.array(left_pts)
   right_pts = np.array(right_pts)
   return left_pts, right_pts
@@ -71,20 +72,25 @@ def fundamental_matrix(pts1, pts2):
   S[2] = 0
   F = np.dot(U, np.dot(np.diag(S),Vh))
   F = F/F[2,2]
-  print('F:', F)
+  #print('F:', F)
   return F
 
+def plot(points):
+  for point in points:
+    plt.plot(point[0], point[1])
+    plt.waitKey(0)   
+    plt.show()
 # Function to implement RANSAC algorithm to reject outliers from SIFT
 def ransac(pts1, pts2):
   iterations = 50
-  threshold = 0.01
+  threshold = 0.05
   max_count = 0
   for i in range(0, iterations):
     count = 0
     idx = random.sample(range(pts1.shape[0]), 8)
     left_pts = pts1[idx]
     right_pts = pts2[idx]
-    F, mask = cv2.findFundamentalMat(left_pts,right_pts,cv2.FM_LMEDS)
+    F = fundamental_matrix(left_pts,right_pts)
     left_feature_inliers = []
     right_feature_inliers = []
     for j in range(0, len(pts1)):
@@ -102,35 +108,69 @@ def ransac(pts1, pts2):
       estimated_F = F  
       final_inliers_left = inliers_left
       final_inliers_right = inliers_right
+  #print('The estimated fundamental Matrix is:', estimated_F)
   return final_inliers_left, final_inliers_right, estimated_F
   
+def essential_matrix(K, F):
+  E = np.dot(K.T, np.dot(F, K))
+  u, s, v = np.linalg.svd(E)
 
+  # We correct the singular values of the E matrix
+  s_new = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]]).reshape(3,3)
+  final_E = np.dot(u, np.dot(s_new, v))
+  return final_E
   
 # Main Function
 def main():
+  ax =  plt.gca()
+  list_fname = [fname for fname in os.listdir(IMAGES_PATH)]
+  list_fname.sort()
+  H = np.eye(4)
+  p0 = np.array([0, 0, 0, 1])
   # Extract the camera params
   fx, fy, cx, cy, G_camera_image, LUT = ReadCameraModel.ReadCameraModel(MODELS_PATH)
+  K = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
   print('The extracted camera parameters are fx = {:}, fy = {:}, cx = {:}, cy = {:}, G_camera_image = {:}, LUT = {:}:'.format(fx, fy, cx, cy, G_camera_image, LUT))
   successive_frames = []
   itr = 0
+  points = []
   # Iterating through all frames in the video and doing some preprocessing
-  for frame in sorted(glob.glob(IMAGES_PATH + "/*")):
-    print('Image:', frame.split("centre/", 1)[1])
-    img = cv2.imread(frame,0)
-    img = cv2.cvtColor(img, cv2.COLOR_BayerGR2BGR)
-    img = UndistortImage.UndistortImage(img,LUT)
-    img = cv2.resize(img, (0,0),fx=0.5,fy=0.5)
-    successive_frames.append(img)
-    if itr != 0 and itr%2 == 0:
-      # Get point matches 
-      left_pts, right_pts = featurematch(successive_frames[0], successive_frames[1])
-      left_inliers, right_inliers, F = ransac(left_pts, right_pts)
-      
-      
-      successive_frames = []        
-    cv2.imshow('Color image', img)
-    cv2.waitKey(0)
-    itr = itr + 1
+  for index in range(20, len(list_fname)):
+    print('Image:', index)
+    frame1 = IMAGES_PATH  + "/" + list_fname[index]
+    frame2 = IMAGES_PATH + "/" + list_fname[index+1]
+    img1 = cv2.imread(frame1,0)
+    img2 = cv2.imread(frame2,0)
+    img1 = cv2.cvtColor(img1, cv2.COLOR_BayerGR2BGR)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_BayerGR2BGR)
+    img1 = UndistortImage.UndistortImage(img1,LUT)
+    img2 = UndistortImage.UndistortImage(img2,LUT)
+    #img = cv2.resize(img, (0,0),fx=0.5,fy=0.5)
+    # Get point matches 
+    left_pts, right_pts = featurematch(img1, img2)
+    #left_inliers, right_inliers, F = ransac(left_pts, right_pts)
+    E1, _ = cv2.findEssentialMat(left_pts, right_pts, focal=fx, pp=(cx,cy), method=cv2.RANSAC, prob=0.999, threshold=0.05)
+    #E = essential_matrix(K, F)
+    #print('Essential matrix:', E)
+    #print('Essential matrix from Opencv:', E1)
+    _, R, T, mask = cv2.recoverPose(E1, left_pts, right_pts, focal=fx, pp=(cx,cy))
+    H1 = np.hstack((R, T))
+    H1 = np.vstack((H1,np.array([0,0,0,1])))
+    H = np.dot(H, H1)
+    #print('H:', H)
+    x = H[0][3]
+    y = H[2][3]
+    ax.scatter(x, y, color='r')
+    plt.draw()
+    plt.pause(0.001)
+    #print("(x,y)", (x,y))
+    points.append((x,y))
+    successive_frames = []  
+  plot(points)      
+  #cv2.imshow('Color image', img)
+  #cv2.waitKey(0)
+  
+  cv2.destroyAllWindows()
     
 if __name__ == '__main__':
   main()
