@@ -6,8 +6,11 @@ import UndistortImage as udi
 import os
 
 file_path = "/home/aditya/Oxford_dataset/stereo/centre/*"
+camera_path = "/home/aditya/Oxford_dataset/model"
 write_path = "/home/aditya/PycharmProjects/VisualOdometry/Undistorted"
 
+
+fx, fy, cx, cy, G_camera_img, LUT = r.ReadCameraModel(camera_path)
 Frame = 0
 print("Images are loading.. ")
 for fname in sorted(glob.glob(file_path)):
