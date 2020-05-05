@@ -11,6 +11,8 @@ random.seed(1)
 
 path = "/home/aditya/PycharmProjects/VisualOdometry/Undistorted2"
 camera_path = "/home/aditya/Oxford_dataset/model"
+save_path = r"/home/aditya/PycharmProjects/VisualOdometry/op2/frame"
+
 fx, fy, cx, cy, G_camera_img, LUT = r.ReadCameraModel(camera_path)
 
 camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
@@ -56,7 +58,7 @@ for index in range(20, dataset_size-1):
     if 3159 <= index:
         x = x*0.1
     plt.scatter(-x, y, color='r')
-    plt.savefig(r"/home/aditya/PycharmProjects/VisualOdometry/op2/frame" + str(index) + ".png")
+    plt.savefig(save_path + str(index) + ".png")
     # plt.pause(0.1)
 
 cv2.destroyAllWindows()
