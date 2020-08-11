@@ -1,7 +1,12 @@
 # visual-odometry-sfm
-This is the repository for the project - Camera pose tracking using visual odometry
+[![License:MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/nalindas9/visual-odometry-sfm/blob/master/LICENSE)
+
+### About
+This is the repository for the project - Camera pose tracking using visual odometry. In this project, camera pose of a camera mounted on a car was tracked using visual odometry. Features extraction is done using SIFT, then outlier rejection is done using RANSAC. Then we derive the fundamental matrix, essential matrix, and camera pose from it. This pose is then plotted to obtain the trajectory.
+
 ### ---------- Our Implementation ---------------------------------------- Opencv Implementation -----------
 <img src = "images/ezgif-2-00af70c21a58.gif" width="425" /> <img src = "images/ezgif-2-03fdbb64fe15.gif" width="425" />
+
 ### Video with camera mounted on the car
 <img src = "images/ezgif-2-473ec8ec4082.gif">
 
